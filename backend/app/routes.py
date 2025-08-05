@@ -8,7 +8,8 @@ from app.services.mlb_service import (
     get_random_players_sample,
     get_team_stats,
     search_players,
-    get_all_teams
+    get_all_teams,
+    get_all_players
 )
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -138,3 +139,8 @@ def search_players_endpoint():
         "query": query,
         "count": len(players)
     }), 200
+
+@api_bp.route('/all-players', methods=['GET'])
+def all_players():
+    players = get_all_players()
+    return jsonify({'players': players})

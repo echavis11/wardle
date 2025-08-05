@@ -47,60 +47,57 @@ def _get_data_file_path(filename):
 # ==================== DATA LOADING ====================
 
 def load_mlb_data():
-    """
-    Loads and processes MLB data from Lahman Database CSV files.
-    Returns both players and teams data.
-    """
     global _players_cache, _teams_cache
-    
+
     if _players_cache is not None and _teams_cache is not None:
         return _players_cache, _teams_cache
 
     try:
-        # Load CSV files
         batting_path = _get_data_file_path('Batting.csv')
         people_path = _get_data_file_path('People.csv')
-        
-        print(f"Attempting to load batting data from: {batting_path}")
-        print(f"File exists: {os.path.exists(batting_path)}")
-        print(f"Attempting to load people data from: {people_path}")
-        print(f"File exists: {os.path.exists(people_path)}")
-        
-        if not os.path.exists(batting_path):
-            raise FileNotFoundError(f"batting.csv not found at {batting_path}")
-        if not os.path.exists(people_path):
-            raise FileNotFoundError(f"people.csv not found at {people_path}")
-        
+        fielding_path = _get_data_file_path('Fielding.csv')
+
         batting_df = pd.read_csv(batting_path)
         people_df = pd.read_csv(people_path)
-        
-        print(f"Loaded {len(batting_df)} batting records and {len(people_df)} people records")
-        
-        # Filter for years 2000 and later
-        batting_df = batting_df[batting_df['yearID'] >= 2000]
-        print(f"Filtered to {len(batting_df)} records from 2000 onwards")
-        
-        # Calculate batting average (H/AB), handle division by zero
+        fielding_df = pd.read_csv(fielding_path)
+
+        # Filter for some meaningful ABs to avoid noise (e.g., accidental 1.000 from 1 AB)
+        batting_df = batting_df[batting_df['AB'] >= 10]
+
+        # Calculate batting average safely
         batting_df['batting_avg'] = batting_df.apply(
-            lambda row: round(row['H'] / row['AB'], 3) if row['AB'] > 0 else 0.000, 
+            lambda row: round(row['H'] / row['AB'], 3) if row['AB'] > 0 else 0.000,
             axis=1
         )
-        
-        # Get most recent season for each player
-        latest_seasons = batting_df.groupby('playerID')['yearID'].max().reset_index()
-        latest_batting = batting_df.merge(latest_seasons, on=['playerID', 'yearID'])
-        
-        # Merge with people data to get names
-        player_data = latest_batting.merge(people_df[['playerID', 'nameFirst', 'nameLast']], 
-                                         on='playerID', how='left')
-        
-        # Filter players with minimum at-bats
-        player_data = player_data[player_data['AB'] >= 100]
-        
-        # Create players list
+
+        # For each player, find the season with highest batting average
+        best_seasons = batting_df.sort_values(['playerID', 'batting_avg', 'AB'], ascending=[True, False, False])
+        best_batting = best_seasons.groupby('playerID').head(1)
+
+        # Get most recent fielding position per player
+        latest_fielding_year = fielding_df.groupby('playerID')['yearID'].max().reset_index()
+        latest_fielding = fielding_df.merge(latest_fielding_year, on=['playerID', 'yearID'])
+        all_positions = (
+            fielding_df.groupby('playerID')['POS']
+            .apply(lambda pos: ','.join(sorted(set(pos.dropna()))))
+            .reset_index()
+            .rename(columns={'POS': 'positions'})
+        )
+
+        # Merge batting with people info
+        player_data = best_batting.merge(
+            people_df[['playerID', 'nameFirst', 'nameLast']],
+            on='playerID', how='left'
+        )
+
+        # Merge position info into player_data
+        player_data = player_data.merge(all_positions, on='playerID', how='left')
+
+
+        # Build players list
         players = []
         for _, row in player_data.iterrows():
-            player = {
+            players.append({
                 'id': row['playerID'],
                 'name': f"{row['nameFirst']} {row['nameLast']}",
                 'team': row['teamID'],
@@ -109,28 +106,20 @@ def load_mlb_data():
                 'hits': int(row['H']) if pd.notna(row['H']) else 0,
                 'at_bats': int(row['AB']) if pd.notna(row['AB']) else 0,
                 'home_runs': int(row['HR']) if pd.notna(row['HR']) else 0,
-                'rbi': int(row['RBI']) if pd.notna(row['RBI']) else 0
-            }
-            players.append(player)
-        
-        # Get unique teams (filter for current MLB teams)
+                'rbi': int(row['RBI']) if pd.notna(row['RBI']) else 0,
+                'position': row['positions'] if pd.notna(row['positions']) else 'UTIL'
+            })
+
+        # Current MLB teams filtering
         current_mlb_teams = list(TEAM_NAME_MAPPING.keys())
         all_teams = batting_df['teamID'].unique().tolist()
         teams = [team for team in current_mlb_teams if team in all_teams]
-        
-        # Cache the data
+
         _players_cache = players
         _teams_cache = teams
-        
-        print(f"Successfully loaded {len(players)} players and {len(teams)} teams from CSV data")
-        print(f"Available teams: {teams}")
-        
+
         return players, teams
-        
-    except FileNotFoundError as e:
-        print(f"ERROR: Required CSV file not found: {e}")
-        print("Make sure your data files are in the correct location!")
-        return [], []
+
     except Exception as e:
         print(f"ERROR loading MLB data: {e}")
         import traceback
