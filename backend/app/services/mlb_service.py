@@ -77,9 +77,10 @@ def load_mlb_data():
         # Get most recent fielding position per player
         latest_fielding_year = fielding_df.groupby('playerID')['yearID'].max().reset_index()
         latest_fielding = fielding_df.merge(latest_fielding_year, on=['playerID', 'yearID'])
+         # Gather ALL positions a player has ever played into a Python list
         all_positions = (
             fielding_df.groupby('playerID')['POS']
-            .apply(lambda pos: ','.join(sorted(set(pos.dropna()))))
+            .apply(lambda pos: sorted(set(pos.dropna())))
             .reset_index()
             .rename(columns={'POS': 'positions'})
         )
@@ -107,7 +108,7 @@ def load_mlb_data():
                 'at_bats': int(row['AB']) if pd.notna(row['AB']) else 0,
                 'home_runs': int(row['HR']) if pd.notna(row['HR']) else 0,
                 'rbi': int(row['RBI']) if pd.notna(row['RBI']) else 0,
-                'position': row['positions'] if pd.notna(row['positions']) else 'UTIL'
+                'positions': row['positions'] if isinstance(row['positions'], list) else ['UTIL']
             })
 
         # Current MLB teams filtering
@@ -145,7 +146,7 @@ def get_players_by_team(team_name):
     
     # Sort by batting average and return top players
     team_players = sorted(team_players, key=lambda p: p['batting_average'], reverse=True)
-    return team_players[:20]  # Top 20 players
+    return team_players[:50]  # Top 20 players
 
 def get_player_by_id(player_id):
     """Returns a single player by ID."""
@@ -214,6 +215,41 @@ def get_team_stats(team_abbrev):
         'total_home_runs': total_hrs,
         'total_rbis': total_rbis
     }
+TEAM_COLORS = {
+    'NYA': '#003087',  # Yankees navy blue
+    'BOS': '#BD3039',  # Red Sox red
+    'TOR': '#134A8E',  # Blue Jays blue
+    'TBA': '#092C5C',  # Rays navy
+    'BAL': '#DF4601',  # Orioles orange
+    'CLE': '#00385D',  # Guardians navy
+    'KC': '#004687',   # Royals blue
+    'CWS': '#27251F',  # White Sox black
+    'DET': '#0C2340',  # Tigers navy
+    'MIN': '#002B5C',  # Twins navy
+    'OAK': '#003831',  # Athletics green
+    'LAA': '#BA0021',  # Angels red
+    'HOU': '#002D62',  # Astros navy
+    'SEA': '#0C2C56',  # Mariners navy
+    'TEX': '#003278',  # Rangers blue
+    'PHI': '#E81828',  # Phillies red
+    'NYN': '#002D72',  # Mets blue
+    'WAS': '#AB0003',  # Nationals red
+    'MIA': '#00A3E0',  # Marlins blue
+    'ATL': '#13274F',  # Braves navy
+    'STL': '#C41E3A',  # Cardinals red
+    'PIT': '#FDB827',  # Pirates yellow
+    'CHN': '#0E3386',  # Cubs blue
+    'MIL': '#12284B',  # Brewers navy
+    'CIN': '#C6011F',  # Reds red
+    'COL': '#33006F',  # Rockies purple
+    'LAN': '#005A9C',  # Dodgers blue
+    'SD': '#2F241D',   # Padres brown
+    'ARI': '#A71930',  # Diamondbacks red
+    'SF': '#FD5A1E',   # Giants orange
+}
+
+def get_team_color(team_abbrev):
+    return TEAM_COLORS.get(team_abbrev, "#000000")
 
 def search_players(query, limit=10):
     """Search players by name."""

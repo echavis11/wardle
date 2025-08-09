@@ -9,7 +9,8 @@ from app.services.mlb_service import (
     get_team_stats,
     search_players,
     get_all_teams,
-    get_all_players
+    get_all_players,
+    get_team_color
 )
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
@@ -46,7 +47,8 @@ def get_a_random_team_endpoint():
     if team_abbrev:
         return jsonify({
             "team": team_abbrev,
-            "team_display": get_team_display_name(team_abbrev)
+            "team_display": get_team_display_name(team_abbrev),
+            "color": get_team_color(team_abbrev)
         }), 200
     else:
         return jsonify({"error": "Could not generate random team"}), 500
