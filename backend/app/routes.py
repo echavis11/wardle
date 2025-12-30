@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from app.services.mlb_service import (
     get_random_team, 
     get_team_display_name, 
-    get_all_team_mappings,
+    get_team_display_abbrev,
     get_players_by_team, 
     get_player_by_id, 
     get_random_players_sample,
@@ -12,6 +12,9 @@ from app.services.mlb_service import (
     get_all_players,
     get_team_color
 )
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from app.models import User
+from app import db
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -41,28 +44,18 @@ def get_state():
 
 @api_bp.route("/random-team", methods=["GET"])
 def get_a_random_team_endpoint():
-    """Get a random MLB team"""
-    team_abbrev = get_random_team()
-    
-    if team_abbrev:
-        return jsonify({
-            "team": team_abbrev,
-            "team_display": get_team_display_name(team_abbrev),
-            "color": get_team_color(team_abbrev)
-        }), 200
-    else:
+    team_id = get_random_team()
+
+    if not team_id:
         return jsonify({"error": "Could not generate random team"}), 500
 
-@api_bp.route('/teams', methods=['GET'])
-def get_all_teams_endpoint():
-    """Get all available teams"""
-    teams = get_all_teams()
-    team_mappings = get_all_team_mappings()
-    
     return jsonify({
-        "teams": teams,
-        "team_mappings": team_mappings
-    }), 200
+        "team": team_id,
+        "team_display": get_team_display_name(team_id),
+        "team_abbrev": get_team_display_abbrev(team_id),
+        "color": get_team_color(team_id)
+    })
+
 
 @api_bp.route('/team-stats/<team_abbrev>', methods=['GET'])
 def get_team_stats_endpoint(team_abbrev):
@@ -146,3 +139,54 @@ def search_players_endpoint():
 def all_players():
     players = get_all_players()
     return jsonify({'players': players})
+
+@api_bp.route("/register", methods=["POST"])
+def register():
+    data = request.get_json()
+    username = data["username"]
+    password = data["password"]
+
+    if User.query.filter_by(username=username).first():
+        return jsonify({"error": "User exists"}), 400
+
+    user = User(username=username)
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({"message": "Registered"}), 201
+
+
+@api_bp.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    user = User.query.filter_by(username=data["username"]).first()
+
+    if not user or not user.check_password(data["password"]):
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    token = create_access_token(identity=user.id)
+    return jsonify({"token": token, "high_score": user.high_score})
+
+@api_bp.route("/high-score", methods=["GET"])
+@jwt_required(optional=True)
+def get_high_score():
+    user_id = get_jwt_identity()
+    if not user_id:
+        return jsonify({"high_score": 0})
+
+    user = User.query.get(user_id)
+    return jsonify({"high_score": user.high_score})
+
+
+@api_bp.route("/high-score", methods=["POST"])
+@jwt_required()
+def update_high_score():
+    user = User.query.get(get_jwt_identity())
+    score = request.get_json()["score"]
+
+    if score > user.high_score:
+        user.high_score = score
+        db.session.commit()
+
+    return jsonify({"high_score": user.high_score})

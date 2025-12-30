@@ -2,49 +2,141 @@ import pandas as pd
 import os
 import random
 
-# Global caches
+# ======================================================
+# MODERN MLB TEAMS (LAHMAN IDS – INTERNAL USE ONLY)
+# ======================================================
+
+MODERN_MLB_TEAMS = {
+    "ARI", "ATL", "BAL", "BOS", "CHN", "CHA", "CIN", "CLE", "COL", "DET",
+    "HOU", "KCA", "ANA", "LAN", "MIA", "MIL", "MIN", "NYN", "NYA", "OAK",
+    "PHI", "PIT", "SDN", "SEA", "SFN", "SLN", "TBA", "TEX", "TOR", "WAS"
+}
+
+# ======================================================
+# DISPLAY MAPPINGS
+# ======================================================
+
+TEAM_NAME_MAPPING = {
+    "ARI": "Arizona Diamondbacks",
+    "ATL": "Atlanta Braves",
+    "BAL": "Baltimore Orioles",
+    "BOS": "Boston Red Sox",
+    "CHN": "Chicago Cubs",
+    "CHA": "Chicago White Sox",
+    "CIN": "Cincinnati Reds",
+    "CLE": "Cleveland Guardians",
+    "COL": "Colorado Rockies",
+    "DET": "Detroit Tigers",
+    "HOU": "Houston Astros",
+    "KCA": "Kansas City Royals",
+    "ANA": "Los Angeles Angels",
+    "LAN": "Los Angeles Dodgers",
+    "MIA": "Miami Marlins",
+    "MIL": "Milwaukee Brewers",
+    "MIN": "Minnesota Twins",
+    "NYN": "New York Mets",
+    "NYA": "New York Yankees",
+    "OAK": "Oakland Athletics",
+    "PHI": "Philadelphia Phillies",
+    "PIT": "Pittsburgh Pirates",
+    "SDN": "San Diego Padres",
+    "SEA": "Seattle Mariners",
+    "SFN": "San Francisco Giants",
+    "SLN": "St. Louis Cardinals",
+    "TBA": "Tampa Bay Rays",
+    "TEX": "Texas Rangers",
+    "TOR": "Toronto Blue Jays",
+    "WAS": "Washington Nationals",
+}
+
+TEAM_DISPLAY_ABBREV = {
+    "ARI": "ARI",
+    "ATL": "ATL",
+    "BAL": "BAL",
+    "BOS": "BOS",
+    "CHN": "CHC",
+    "CHA": "CWS",
+    "CIN": "CIN",
+    "CLE": "CLE",
+    "COL": "COL",
+    "DET": "DET",
+    "HOU": "HOU",
+    "KCA": "KC",
+    "ANA": "LAA",
+    "LAN": "LAD",
+    "MIA": "MIA",
+    "MIL": "MIL",
+    "MIN": "MIN",
+    "NYN": "NYM",
+    "NYA": "NYY",
+    "OAK": "OAK",
+    "PHI": "PHI",
+    "PIT": "PIT",
+    "SDN": "SD",
+    "SEA": "SEA",
+    "SFN": "SF",
+    "SLN": "STL",
+    "TBA": "TB",
+    "TEX": "TEX",
+    "TOR": "TOR",
+    "WAS": "WSH",
+}
+
+TEAM_COLORS = {
+    "ARI": "#A71930",
+    "ATL": "#13274F",
+    "BAL": "#DF4601",
+    "BOS": "#BD3039",
+    "CHN": "#0E3386",
+    "CHA": "#27251F",
+    "CIN": "#C6011F",
+    "CLE": "#00385D",
+    "COL": "#33006F",
+    "DET": "#0C2340",
+    "HOU": "#002D62",
+    "KCA": "#004687",
+    "ANA": "#BA0021",
+    "LAN": "#005A9C",
+    "MIA": "#00A3E0",
+    "MIL": "#12284B",
+    "MIN": "#002B5C",
+    "NYN": "#002D72",
+    "NYA": "#003087",
+    "OAK": "#003831",
+    "PHI": "#E81828",
+    "PIT": "#FDB827",
+    "SDN": "#2F241D",
+    "SEA": "#0C2C56",
+    "SFN": "#FD5A1E",
+    "SLN": "#C41E3A",
+    "TBA": "#092C5C",
+    "TEX": "#003278",
+    "TOR": "#134A8E",
+    "WAS": "#AB0003",
+}
+
+# ======================================================
+# GLOBAL CACHES
+# ======================================================
+
 _players_cache = None
 _teams_cache = None
 
-# Team name mappings for better display
-TEAM_NAME_MAPPING = {
-    'NYA': 'New York Yankees',
-    'BOS': 'Boston Red Sox', 
-    'TOR': 'Toronto Blue Jays',
-    'TBA': 'Tampa Bay Rays',
-    'BAL': 'Baltimore Orioles',
-    'CLE': 'Cleveland Guardians',
-    'KC': 'Kansas City Royals',
-    'CWS': 'Chicago White Sox',
-    'DET': 'Detroit Tigers',
-    'MIN': 'Minnesota Twins',
-    'OAK': 'Oakland Athletics',
-    'LAA': 'Los Angeles Angels',
-    'HOU': 'Houston Astros',
-    'SEA': 'Seattle Mariners',
-    'TEX': 'Texas Rangers',
-    'PHI': 'Philadelphia Phillies',
-    'NYN': 'New York Mets',
-    'WAS': 'Washington Nationals',
-    'MIA': 'Miami Marlins',
-    'ATL': 'Atlanta Braves',
-    'STL': 'St. Louis Cardinals',
-    'PIT': 'Pittsburgh Pirates',
-    'CHN': 'Chicago Cubs',
-    'MIL': 'Milwaukee Brewers',
-    'CIN': 'Cincinnati Reds',
-    'COL': 'Colorado Rockies',
-    'LAN': 'Los Angeles Dodgers',
-    'SD': 'San Diego Padres',
-    'ARI': 'Arizona Diamondbacks',
-    'SF': 'San Francisco Giants'
-}
+# ======================================================
+# DATA LOADING
+# ======================================================
 
 def _get_data_file_path(filename):
-    """Helper to get the absolute path to a data file."""
-    return os.path.join(os.path.dirname(__file__), '..', 'data', filename)
+    return os.path.join(os.path.dirname(__file__), "..", "data", filename)
 
-# ==================== DATA LOADING ====================
+def safe_int(value):
+    try:
+        if pd.isna(value):
+            return 0
+        return int(value)
+    except Exception:
+        return 0
+
 
 def load_mlb_data():
     global _players_cache, _teams_cache
@@ -52,216 +144,132 @@ def load_mlb_data():
     if _players_cache is not None and _teams_cache is not None:
         return _players_cache, _teams_cache
 
-    try:
-        batting_path = _get_data_file_path('Batting.csv')
-        people_path = _get_data_file_path('People.csv')
-        fielding_path = _get_data_file_path('Fielding.csv')
+    batting_df = pd.read_csv(_get_data_file_path("Batting.csv"))
+    people_df = pd.read_csv(_get_data_file_path("People.csv"))
+    fielding_df = pd.read_csv(_get_data_file_path("Fielding.csv"))
 
-        batting_df = pd.read_csv(batting_path)
-        people_df = pd.read_csv(people_path)
-        fielding_df = pd.read_csv(fielding_path)
+    batting_df = batting_df[batting_df["AB"] >= 10]
+    batting_df["batting_avg"] = batting_df["H"] / batting_df["AB"]
 
-        # Filter for some meaningful ABs to avoid noise (e.g., accidental 1.000 from 1 AB)
-        batting_df = batting_df[batting_df['AB'] >= 10]
+    best = batting_df.sort_values(
+        ["playerID", "batting_avg", "AB"],
+        ascending=[True, False, False]
+    ).groupby("playerID").head(1)
 
-        # Calculate batting average safely
-        batting_df['batting_avg'] = batting_df.apply(
-            lambda row: round(row['H'] / row['AB'], 3) if row['AB'] > 0 else 0.000,
-            axis=1
-        )
+    positions = (
+        fielding_df.groupby("playerID")["POS"]
+        .apply(lambda p: sorted(set(p.dropna())))
+        .reset_index()
+    )
 
-        # For each player, find the season with highest batting average
-        best_seasons = batting_df.sort_values(['playerID', 'batting_avg', 'AB'], ascending=[True, False, False])
-        best_batting = best_seasons.groupby('playerID').head(1)
+    merged = best.merge(
+        people_df[["playerID", "nameFirst", "nameLast"]],
+        on="playerID",
+        how="left"
+    ).merge(
+        positions,
+        on="playerID",
+        how="left"
+    )
 
-        # Get most recent fielding position per player
-        latest_fielding_year = fielding_df.groupby('playerID')['yearID'].max().reset_index()
-        latest_fielding = fielding_df.merge(latest_fielding_year, on=['playerID', 'yearID'])
-         # Gather ALL positions a player has ever played into a Python list
-        all_positions = (
-            fielding_df.groupby('playerID')['POS']
-            .apply(lambda pos: sorted(set(pos.dropna())))
-            .reset_index()
-            .rename(columns={'POS': 'positions'})
-        )
+    players = []
+    for _, r in merged.iterrows():
+        players.append({
+            "id": r["playerID"],
+            "name": f"{r['nameFirst']} {r['nameLast']}",
+            "team": r["teamID"],
+            "batting_average": round(r["batting_avg"], 3),
+            "year": safe_int(r["yearID"]),
+            "hits": safe_int(r["H"]),
+            "at_bats": safe_int(r["AB"]),
+            "home_runs": safe_int(r["HR"]),
+            "rbi": safe_int(r["RBI"]),
+            "positions": r["POS"] if isinstance(r["POS"], list) else ["UTIL"]
+        })
 
-        # Merge batting with people info
-        player_data = best_batting.merge(
-            people_df[['playerID', 'nameFirst', 'nameLast']],
-            on='playerID', how='left'
-        )
+    teams_in_data = set(batting_df["teamID"].unique())
+    teams = sorted(t for t in MODERN_MLB_TEAMS if t in teams_in_data)
 
-        # Merge position info into player_data
-        player_data = player_data.merge(all_positions, on='playerID', how='left')
+    _players_cache = players
+    _teams_cache = teams
 
+    return players, teams
 
-        # Build players list
-        players = []
-        for _, row in player_data.iterrows():
-            players.append({
-                'id': row['playerID'],
-                'name': f"{row['nameFirst']} {row['nameLast']}",
-                'team': row['teamID'],
-                'batting_average': row['batting_avg'],
-                'year': int(row['yearID']),
-                'hits': int(row['H']) if pd.notna(row['H']) else 0,
-                'at_bats': int(row['AB']) if pd.notna(row['AB']) else 0,
-                'home_runs': int(row['HR']) if pd.notna(row['HR']) else 0,
-                'rbi': int(row['RBI']) if pd.notna(row['RBI']) else 0,
-                'positions': row['positions'] if isinstance(row['positions'], list) else ['UTIL']
-            })
-
-        # Current MLB teams filtering
-        current_mlb_teams = list(TEAM_NAME_MAPPING.keys())
-        all_teams = batting_df['teamID'].unique().tolist()
-        teams = [team for team in current_mlb_teams if team in all_teams]
-
-        _players_cache = players
-        _teams_cache = teams
-
-        return players, teams
-
-    except Exception as e:
-        print(f"ERROR loading MLB data: {e}")
-        import traceback
-        traceback.print_exc()
-        return [], []
-
-
-# ==================== PLAYER FUNCTIONS ====================
+# ======================================================
+# PLAYER FUNCTIONS
+# ======================================================
 
 def get_all_players():
-    """Returns all loaded players."""
-    players, _ = load_mlb_data()
-    return players
+    return load_mlb_data()[0]
 
-def get_players_by_team(team_name):
-    """Returns players for a specific team."""
+
+def get_players_by_team(team_id):
     players, _ = load_mlb_data()
-    
-    team_players = [
-        player for player in players 
-        if player.get('team', '').upper() == team_name.upper()
-    ]
-    
-    # Sort by batting average and return top players
-    team_players = sorted(team_players, key=lambda p: p['batting_average'], reverse=True)
-    return team_players[:50]  # Top 20 players
+    return sorted(
+        [p for p in players if p["team"] == team_id],
+        key=lambda p: p["batting_average"],
+        reverse=True
+    )[:50]
+
 
 def get_player_by_id(player_id):
-    """Returns a single player by ID."""
-    players, _ = load_mlb_data()
-    
-    for player in players:
-        if player.get('id') == player_id:
-            return player
+    for p in load_mlb_data()[0]:
+        if p["id"] == player_id:
+            return p
     return None
 
-def get_random_players_sample(count=50):
-    """Returns a random sample of players."""
-    players, _ = load_mlb_data()
-    
-    # Filter for players with decent batting averages
-    good_players = [p for p in players if p['batting_average'] >= 0.200]
-    
-    if len(good_players) < count:
-        return good_players
-    
-    return random.sample(good_players, count)
 
-# ==================== TEAM FUNCTIONS ====================
+def get_random_players_sample(count=50):
+    players = [p for p in load_mlb_data()[0] if p["batting_average"] >= 0.200]
+    return random.sample(players, min(count, len(players)))
+
+# ======================================================
+# TEAM FUNCTIONS
+# ======================================================
 
 def get_all_teams():
-    """Returns all available team abbreviations."""
-    _, teams = load_mlb_data()
-    return teams
+    return load_mlb_data()[1]
+
 
 def get_random_team():
-    """Returns a random team abbreviation."""
     teams = get_all_teams()
-    if not teams:
-        print("Error: No teams available to select from")
-        return None
-    
-    return random.choice(teams)
+    return random.choice(teams) if teams else None
 
-def get_team_display_name(team_abbrev):
-    """Convert team abbreviation to full display name."""
-    return TEAM_NAME_MAPPING.get(team_abbrev, team_abbrev)
 
-def get_all_team_mappings():
-    """Returns dictionary of all team abbreviations to display names."""
-    return TEAM_NAME_MAPPING.copy()
+def get_team_display_name(team_id):
+    return TEAM_NAME_MAPPING.get(team_id, team_id)
 
-# ==================== UTILITY FUNCTIONS ====================
 
-def get_team_stats(team_abbrev):
-    """Get aggregate stats for a team."""
-    players = get_players_by_team(team_abbrev)
-    
+def get_team_display_abbrev(team_id):
+    return TEAM_DISPLAY_ABBREV.get(team_id, team_id)
+
+
+def get_team_color(team_id):
+    return TEAM_COLORS.get(team_id, "#000000")
+
+
+def get_team_stats(team_id):
+    players = get_players_by_team(team_id)
     if not players:
         return None
-    
-    total_players = len(players)
-    avg_batting_avg = sum(p['batting_average'] for p in players) / total_players
-    total_hrs = sum(p['home_runs'] for p in players)
-    total_rbis = sum(p['rbi'] for p in players)
-    
-    return {
-        'team': team_abbrev,
-        'team_display': get_team_display_name(team_abbrev),
-        'player_count': total_players,
-        'avg_batting_average': round(avg_batting_avg, 3),
-        'total_home_runs': total_hrs,
-        'total_rbis': total_rbis
-    }
-TEAM_COLORS = {
-    'NYA': '#003087',  # Yankees navy blue
-    'BOS': '#BD3039',  # Red Sox red
-    'TOR': '#134A8E',  # Blue Jays blue
-    'TBA': '#092C5C',  # Rays navy
-    'BAL': '#DF4601',  # Orioles orange
-    'CLE': '#00385D',  # Guardians navy
-    'KC': '#004687',   # Royals blue
-    'CWS': '#27251F',  # White Sox black
-    'DET': '#0C2340',  # Tigers navy
-    'MIN': '#002B5C',  # Twins navy
-    'OAK': '#003831',  # Athletics green
-    'LAA': '#BA0021',  # Angels red
-    'HOU': '#002D62',  # Astros navy
-    'SEA': '#0C2C56',  # Mariners navy
-    'TEX': '#003278',  # Rangers blue
-    'PHI': '#E81828',  # Phillies red
-    'NYN': '#002D72',  # Mets blue
-    'WAS': '#AB0003',  # Nationals red
-    'MIA': '#00A3E0',  # Marlins blue
-    'ATL': '#13274F',  # Braves navy
-    'STL': '#C41E3A',  # Cardinals red
-    'PIT': '#FDB827',  # Pirates yellow
-    'CHN': '#0E3386',  # Cubs blue
-    'MIL': '#12284B',  # Brewers navy
-    'CIN': '#C6011F',  # Reds red
-    'COL': '#33006F',  # Rockies purple
-    'LAN': '#005A9C',  # Dodgers blue
-    'SD': '#2F241D',   # Padres brown
-    'ARI': '#A71930',  # Diamondbacks red
-    'SF': '#FD5A1E',   # Giants orange
-}
 
-def get_team_color(team_abbrev):
-    return TEAM_COLORS.get(team_abbrev, "#000000")
+    return {
+        "team_id": team_id,
+        "team_name": get_team_display_name(team_id),
+        "team_abbrev": get_team_display_abbrev(team_id),
+        "player_count": len(players),
+        "avg_batting_average": round(
+            sum(p["batting_average"] for p in players) / len(players), 3
+        ),
+        "total_home_runs": sum(p["home_runs"] for p in players),
+        "total_rbis": sum(p["rbi"] for p in players)
+    }
+
+# ======================================================
+# SEARCH
+# ======================================================
 
 def search_players(query, limit=10):
-    """Search players by name."""
-    players, _ = load_mlb_data()
-    
-    query_lower = query.lower()
-    matching_players = [
-        player for player in players 
-        if query_lower in player['name'].lower()
-    ]
-    
-    # Sort by batting average
-    matching_players = sorted(matching_players, key=lambda p: p['batting_average'], reverse=True)
-    
-    return matching_players[:limit]
+    q = query.lower()
+    matches = [p for p in load_mlb_data()[0] if q in p["name"].lower()]
+    return sorted(matches, key=lambda p: p["batting_average"], reverse=True)[:limit]

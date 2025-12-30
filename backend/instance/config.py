@@ -1,15 +1,9 @@
 import os
 
 class Config:
-    """Base configuration."""
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess-this-secret-key-change-it'
-    # Fallback to a default if SECRET_KEY environment variable is not set.
-    # IMPORTANT: Change this to a strong, random key in production!
-
-    # Example database configuration (if you were using one)
-    # SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-    #     'sqlite:///' + os.path.join(os.path.abspath(os.path.dirname(__file__)), '../app.db')
-    # SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SECRET_KEY = "dev-secret-key"
+    SQLALCHEMY_DATABASE_URI = "sqlite:///wardle.db"
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Other configurations
     DEBUG = True # Set to False in production
