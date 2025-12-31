@@ -1,11 +1,9 @@
 from flask_cors import CORS
 from app import create_app
 
-# Create the Flask application instance using your factory function
 app = create_app()
-
-# Apply CORS to the created app
 CORS(app)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+# DO NOT call app.run() in production
+if __name__ == "__main__":
+    app.run()

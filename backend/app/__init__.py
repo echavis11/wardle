@@ -12,7 +12,7 @@ def create_app():
     # Load instance config
     app.config.from_object("instance.config.Config")
 
-    CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
 
     db.init_app(app)
     jwt.init_app(app)
