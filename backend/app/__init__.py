@@ -22,7 +22,10 @@ def create_app():
     CORS(
         app,
         resources={r"/api/*": {
-            "origins": ["https://wardle-peach.vercel.app"],
+            "origins": [
+                "http://localhost:3000",
+                "https://wardle-peach.vercel.app"
+            ],
             "methods": ["GET", "POST", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"],
             "supports_credentials": False
