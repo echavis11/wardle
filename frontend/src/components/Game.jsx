@@ -100,7 +100,6 @@ export default function Game() {
 
   useEffect(() => {
     shuffleTeam();
-    
   }, []);
 
   const eligiblePlayers = (pos) => {
