@@ -1,9 +1,16 @@
 import os
 
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
 class Config:
     SECRET_KEY = "dev-secret-key"
-    SQLALCHEMY_DATABASE_URI = "sqlite:///wardle.db"
+    SQLALCHEMY_DATABASE_URI = (
+        "sqlite:///" + os.path.join(BASE_DIR, "wardle.db")
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    JWT_TOKEN_LOCATION = ["headers"]
+    JWT_COOKIE_CSRF_PROTECT = False
 
     # Other configurations
     DEBUG = True # Set to False in production

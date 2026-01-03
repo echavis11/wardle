@@ -35,6 +35,14 @@ def create_app():
     db.init_app(app)
     jwt.init_app(app)
 
+    # 🔍 ADD THESE LINES (temporary)
+    with app.app_context():
+        print("SQLALCHEMY_DATABASE_URI:", app.config["SQLALCHEMY_DATABASE_URI"])
+
+        if app.config["SQLALCHEMY_DATABASE_URI"].startswith("sqlite"):
+            db_path = app.config["SQLALCHEMY_DATABASE_URI"].replace("sqlite:///", "")
+            print("SQLITE FILE PATH:", os.path.abspath(db_path))
+
     from app.routes import api_bp
     app.register_blueprint(api_bp)
 

@@ -6,16 +6,29 @@ export function AuthProvider({ children }) {
   const [token, setTokenState] = useState(null);
   const [username, setUsername] = useState(null);
 
-  // Load from localStorage on first mount
   useEffect(() => {
     const savedToken = localStorage.getItem("wardle_token");
     const savedUsername = localStorage.getItem("wardle_username");
-    if (savedToken) setTokenState(savedToken);
-    if (savedUsername) setUsername(savedUsername);
+
+    if (
+      savedToken &&
+      savedToken !== "undefined" &&
+      savedToken !== "null"
+    ) {
+      setTokenState(savedToken);
+      if (savedUsername) setUsername(savedUsername);
+    } else {
+      localStorage.removeItem("wardle_token");
+      localStorage.removeItem("wardle_username");
+    }
   }, []);
 
   const setToken = (newToken, newUsername) => {
-    if (!newToken) {
+    if (
+      !newToken ||
+      newToken === "undefined" ||
+      newToken === "null"
+    ) {
       localStorage.removeItem("wardle_token");
       localStorage.removeItem("wardle_username");
       setTokenState(null);
@@ -24,10 +37,12 @@ export function AuthProvider({ children }) {
     }
 
     localStorage.setItem("wardle_token", newToken);
-    if (newUsername) localStorage.setItem("wardle_username", newUsername);
+    if (newUsername) {
+      localStorage.setItem("wardle_username", newUsername);
+      setUsername(newUsername);
+    }
 
     setTokenState(newToken);
-    setUsername(newUsername || null);
   };
 
   const value = useMemo(
@@ -35,5 +50,9 @@ export function AuthProvider({ children }) {
     [token, username]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }

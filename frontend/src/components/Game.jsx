@@ -11,6 +11,7 @@ const API_BASE_URL =
 
 export default function Game() {
   const { token, username, setToken } = useContext(AuthContext);
+  console.log("Using token:", token)
 
   const [randomTeam, setRandomTeam] = useState(null);
   const [teamAbbrev, setTeamAbbrev] = useState(null);
@@ -31,20 +32,25 @@ export default function Game() {
   /* ---------------- LOAD HIGH SCORE ---------------- */
 
   useEffect(() => {
-    if (!token) return;
+    if (!username) {
+      setHighScore(0);
+      return;
+    }
 
     const loadHighScore = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/high-score`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await fetch(
+          `${API_BASE_URL}/api/high-score/${username}`
+        );
         const data = await res.json();
-        if (res.ok) setHighScore(Number(data.high_score || 0));
-      } catch {}
+        setHighScore(Number(data.high_score || 0));
+      } catch (err) {
+        console.error("Failed to load high score", err);
+      }
     };
 
     loadHighScore();
-  }, [token]);
+  }, [username]);
 
   /* ---------------- FETCH TEAM PLAYERS ---------------- */
 
@@ -132,25 +138,29 @@ export default function Game() {
   const resetGame = async () => {
     const score = Number(totalAverage());
 
-    if (token) {
+    if (username) {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/high-score`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ score })
-        });
+        const res = await fetch(
+          `${API_BASE_URL}/api/high-score/${username}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ score }),
+          }
+        );
+
         const data = await res.json();
-        if (res.ok) setHighScore(Number(data.high_score || 0));
-      } catch {
+        setHighScore(Number(data.high_score || 0));
+      } catch (err) {
+        console.error("Failed to save high score", err);
         if (score > highScore) setHighScore(score);
       }
     } else if (score > highScore) {
+      // guest fallback
       setHighScore(score);
     }
 
+    // reset state
     setRandomTeam(null);
     setTeamPlayers([]);
     setLineup(Array(9).fill(null));

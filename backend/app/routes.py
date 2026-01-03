@@ -12,9 +12,10 @@ from app.services.mlb_service import (
     get_all_players,
     get_team_color
 )
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
 from app.models import User
 from app import db
+from flask_jwt_extended.exceptions import JWTExtendedException
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -168,22 +169,20 @@ def login():
     token = create_access_token(identity=user.id)
     return jsonify({"token": token, "high_score": user.high_score})
 
-@api_bp.route("/high-score", methods=["GET"])
-@jwt_required(optional=True)
-def get_high_score():
-    user_id = get_jwt_identity()
-    if not user_id:
-        return jsonify({"high_score": 0})
-
-    user = User.query.get(user_id)
-    return jsonify({"high_score": user.high_score})
+@api_bp.route("/high-score/<username>", methods=["GET"])
+def get_high_score(username):
+    user = User.query.filter_by(username=username).first()
+    return jsonify({"high_score": user.high_score if user else 0})
 
 
-@api_bp.route("/high-score", methods=["POST"])
-@jwt_required()
-def update_high_score():
-    user = User.query.get(get_jwt_identity())
-    score = request.get_json()["score"]
+@api_bp.route("/high-score/<username>", methods=["POST"])
+def update_high_score(username):
+    data = request.get_json() or {}
+    score = float(data.get("score", 0))
+
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
 
     if score > user.high_score:
         user.high_score = score
