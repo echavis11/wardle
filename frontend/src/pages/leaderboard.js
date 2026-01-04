@@ -27,64 +27,55 @@ export default function Leaderboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex justify-center p-8">
-      <div className="w-full max-w-xl bg-black/40 backdrop-blur-xl rounded-2xl shadow-2xl p-8">
-        
-        {/* TOP ROW: logo + nav + auth */}
-        <HeaderBar />
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
+      {/* ✅ FULL-WIDTH HEADER */}
+      <HeaderBar />
 
-        {/* PAGE TITLE */}
-        <h1 className="text-white text-3xl font-bold mb-6">
-          Leaderboard
-        </h1>
+      {/* ✅ CENTERED PAGE CONTENT */}
+      <div className="flex justify-center p-8">
+        <div className="w-full max-w-xl bg-black/40 backdrop-blur-xl rounded-2xl shadow-2xl p-8">
+          <h1 className="text-white text-3xl font-bold mb-6">
+            Leaderboard
+          </h1>
 
-        {loading && (
-          <p className="text-white animate-pulse">
-            Loading leaderboard…
-          </p>
-        )}
+          {loading && (
+            <p className="text-white animate-pulse">
+              Loading leaderboard…
+            </p>
+          )}
 
-        {error && (
-          <p className="text-red-400">
-            {error}
-          </p>
-        )}
+          {error && (
+            <p className="text-red-400">{error}</p>
+          )}
 
-        {!loading && !error && leaders.length === 0 && (
-          <p className="text-white/70">
-            No scores yet.
-          </p>
-        )}
+          {!loading && !error && leaders.length === 0 && (
+            <p className="text-white/70">No scores yet.</p>
+          )}
 
-        {!loading && !error && leaders.length > 0 && (
-          <ul className="space-y-3">
-            {leaders.map((user, index) => (
-              <LeaderboardRow
-                key={user.username}
-                rank={index + 1}
-                username={user.username}
-                score={user.high_score}
-              />
-            ))}
-          </ul>
-        )}
+          {!loading && !error && leaders.length > 0 && (
+            <ul className="space-y-3">
+              {leaders.map((user, index) => (
+                <LeaderboardRow
+                  key={user.username}
+                  rank={index + 1}
+                  username={user.username}
+                  score={user.high_score}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-/* ---------- React sub-component ---------- */
-
 function LeaderboardRow({ rank, username, score }) {
   return (
     <li className="flex justify-between items-center bg-white/10 rounded-xl px-4 py-3">
       <div className="flex items-center gap-3">
-        <span className="text-yellow-400 font-bold text-lg">
-          #{rank}
-        </span>
-        <span className="text-white font-semibold">
-          {username}
-        </span>
+        <span className="text-yellow-400 font-bold text-lg">#{rank}</span>
+        <span className="text-white font-semibold">{username}</span>
       </div>
       <span className="text-green-400 font-mono">
         {score.toFixed(3)}
