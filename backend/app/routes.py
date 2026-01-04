@@ -189,3 +189,23 @@ def update_high_score(username):
         db.session.commit()
 
     return jsonify({"high_score": user.high_score})
+
+@api_bp.route("/leaderboard", methods=["GET"])
+def leaderboard():
+    users = (
+        User.query
+        .filter(User.high_score > 0)
+        .order_by(User.high_score.desc())
+        .limit(10)
+        .all()
+    )
+
+    return jsonify({
+        "leaderboard": [
+            {
+                "username": u.username,
+                "high_score": u.high_score
+            }
+            for u in users
+        ]
+    })

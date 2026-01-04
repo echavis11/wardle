@@ -1,6 +1,8 @@
 import { useContext, useState } from "react";
 import { AuthContext } from "@/context/AuthContext";
 
+import { useRouter } from "next/router";
+
 export default function AuthPanel({ apiBaseUrl, onLoggedInHighScore }) {
   const { token, username, setToken } = useContext(AuthContext);
 
@@ -9,6 +11,8 @@ export default function AuthPanel({ apiBaseUrl, onLoggedInHighScore }) {
   const [p, setP] = useState("");
   const [msg, setMsg] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const router = useRouter();
 
   const submit = async (e) => {
     e.preventDefault();
@@ -49,11 +53,11 @@ export default function AuthPanel({ apiBaseUrl, onLoggedInHighScore }) {
         }
         setToken(loginData.token, u.trim());
         onLoggedInHighScore?.(loginData.high_score ?? 0);
-        setMsg("Registered and logged in.");
+        router.push("/");
       } else {
         setToken(data.token, u.trim());
         onLoggedInHighScore?.(data.high_score ?? 0);
-        setMsg("Logged in.");
+        router.push("/");
       }
 
       setP("");

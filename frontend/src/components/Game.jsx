@@ -1,17 +1,15 @@
-// components/Game.jsx
 import { useContext, useEffect, useState } from "react";
-import Link from "next/link";
 import { AuthContext } from "@/context/AuthContext";
 import { teamData } from "@/constants/teamData";
 import TeamDisplay from "@/components/TeamDisplay";
 import ShuffleButton from "@/components/ShuffleButton";
+import HeaderBar from "@/components/HeaderBar";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 export default function Game() {
-  const { token, username, setToken } = useContext(AuthContext);
-  console.log("Using token:", token)
+  const { username } = useContext(AuthContext);
 
   const [randomTeam, setRandomTeam] = useState(null);
   const [teamAbbrev, setTeamAbbrev] = useState(null);
@@ -61,10 +59,12 @@ export default function Game() {
       try {
         setIsLoading(true);
         setError(null);
+
         const res = await fetch(
           `${API_BASE_URL}/api/team-players/${encodeURIComponent(randomTeam)}`
         );
         if (!res.ok) throw new Error();
+
         const data = await res.json();
         setTeamPlayers(data.players || []);
       } catch {
@@ -77,6 +77,7 @@ export default function Game() {
 
     fetchPlayers();
   }, [randomTeam]);
+
   /* ---------------- GAME ACTIONS ---------------- */
 
   const shuffleTeam = async () => {
@@ -156,11 +157,9 @@ export default function Game() {
         if (score > highScore) setHighScore(score);
       }
     } else if (score > highScore) {
-      // guest fallback
       setHighScore(score);
     }
 
-    // reset state
     setRandomTeam(null);
     setTeamPlayers([]);
     setLineup(Array(9).fill(null));
@@ -175,29 +174,6 @@ export default function Game() {
 
   return (
     <>
-      {/* AUTH BAR */}
-      <div className="w-full flex justify-end mb-6">
-        {token ? (
-          <div className="flex items-center gap-4">
-            <span className="text-white/80 text-sm">
-              Signed in{username ? ` as ${username}` : ""}
-            </span>
-            <button
-              onClick={() => setToken(null)}
-              className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition"
-            >
-              Log out
-            </button>
-          </div>
-        ) : (
-          <Link
-            href="/login"
-            className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
-          >
-            Log in
-          </Link>
-        )}
-      </div>
 
       {error && <p className="text-red-500 text-lg mb-4">{error}</p>}
 
@@ -231,7 +207,7 @@ export default function Game() {
                 style={{
                   backgroundColor: player
                     ? teamData[player.team]?.color
-                    : "#374151"
+                    : "#374151",
                 }}
                 className={`w-36 h-24 rounded-xl text-white border border-white flex flex-col items-center justify-center transition
                   ${player ? "opacity-90 cursor-not-allowed" : "hover:scale-105"}`}
@@ -245,7 +221,6 @@ export default function Game() {
                 )}
               </button>
 
-              {/* GLASS DROPDOWN */}
               {activeIndex === i &&
                 hasShuffled &&
                 !hasPickedPlayer &&
@@ -274,7 +249,9 @@ export default function Game() {
 
         <p className="text-white text-xl mt-6">
           Total Batting Average:{" "}
-          <span className="font-bold text-yellow-400">{totalAverage()}</span>
+          <span className="font-bold text-yellow-400">
+            {totalAverage()}
+          </span>
         </p>
 
         {highScore > 0 && (
