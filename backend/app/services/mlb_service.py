@@ -148,7 +148,7 @@ def load_mlb_data():
     people_df = pd.read_csv(_get_data_file_path("People.csv"))
     fielding_df = pd.read_csv(_get_data_file_path("Fielding.csv"))
 
-    batting_df = batting_df[batting_df["AB"] >= 300]
+    batting_df = batting_df[batting_df["AB"] >= 450]
     batting_df["batting_avg"] = batting_df["H"] / batting_df["AB"]
 
     best = batting_df.sort_values(
