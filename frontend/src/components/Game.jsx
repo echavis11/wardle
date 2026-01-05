@@ -116,6 +116,16 @@ export default function Game() {
     );
   };
 
+  const isBestAtPosition = (player, position) => {
+    if (!player) return false;
+
+    const eligible = eligiblePlayers(position);
+    if (!eligible.length) return false;
+
+    const bestAvg = Math.max(...eligible.map(p => p.batting_average));
+    return player.batting_average === bestAvg;
+  };
+
   const selectPlayer = (player) => {
     if (lineup[activeIndex]) return;
 
@@ -213,7 +223,19 @@ export default function Game() {
                   ${player ? "opacity-90 cursor-not-allowed" : "hover:scale-105"}`}
               >
                 <span className="font-semibold">{positionLabels[i]}</span>
-                <span>{player ? player.name : "Empty Slot"}</span>
+                <span className="flex items-center gap-1">
+                  {player &&
+                    isBestAtPosition(player, positionLabels[i]) && (
+                      <span className="text-yellow-400">⭐</span>
+                    )}
+
+                  <span>{player ? player.name : "Empty Slot"}</span>
+
+                  {player &&
+                    isBestAtPosition(player, positionLabels[i]) && (
+                      <span className="text-yellow-400">⭐</span>
+                    )}
+                </span>
                 {player && (
                   <span className="text-yellow-400 text-sm">
                     {player.batting_average.toFixed(3)}
