@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import random
+from collections import defaultdict
 
 # ======================================================
 # MODERN MLB TEAMS (LAHMAN IDS – INTERNAL USE ONLY)
@@ -50,80 +51,42 @@ TEAM_NAME_MAPPING = {
 }
 
 TEAM_DISPLAY_ABBREV = {
-    "ARI": "ARI",
-    "ATL": "ATL",
-    "BAL": "BAL",
-    "BOS": "BOS",
-    "CHN": "CHC",
-    "CHA": "CWS",
-    "CIN": "CIN",
-    "CLE": "CLE",
-    "COL": "COL",
-    "DET": "DET",
-    "HOU": "HOU",
-    "KCA": "KC",
-    "ANA": "LAA",
-    "LAN": "LAD",
-    "MIA": "MIA",
-    "MIL": "MIL",
-    "MIN": "MIN",
-    "NYN": "NYM",
-    "NYA": "NYY",
-    "OAK": "OAK",
-    "PHI": "PHI",
-    "PIT": "PIT",
-    "SDN": "SD",
-    "SEA": "SEA",
-    "SFN": "SF",
-    "SLN": "STL",
-    "TBA": "TB",
-    "TEX": "TEX",
-    "TOR": "TOR",
-    "WAS": "WSH",
+    "ARI": "ARI", "ATL": "ATL", "BAL": "BAL", "BOS": "BOS",
+    "CHN": "CHC", "CHA": "CWS", "CIN": "CIN", "CLE": "CLE",
+    "COL": "COL", "DET": "DET", "HOU": "HOU", "KCA": "KC",
+    "ANA": "LAA", "LAN": "LAD", "MIA": "MIA", "MIL": "MIL",
+    "MIN": "MIN", "NYN": "NYM", "NYA": "NYY", "OAK": "OAK",
+    "PHI": "PHI", "PIT": "PIT", "SDN": "SD",  "SEA": "SEA",
+    "SFN": "SF",  "SLN": "STL", "TBA": "TB",  "TEX": "TEX",
+    "TOR": "TOR", "WAS": "WSH",
 }
 
 TEAM_COLORS = {
-    "ARI": "#A71930",
-    "ATL": "#13274F",
-    "BAL": "#DF4601",
-    "BOS": "#BD3039",
-    "CHN": "#0E3386",
-    "CHA": "#27251F",
-    "CIN": "#C6011F",
-    "CLE": "#00385D",
-    "COL": "#33006F",
-    "DET": "#0C2340",
-    "HOU": "#002D62",
-    "KCA": "#004687",
-    "ANA": "#BA0021",
-    "LAN": "#005A9C",
-    "MIA": "#00A3E0",
-    "MIL": "#12284B",
-    "MIN": "#002B5C",
-    "NYN": "#002D72",
-    "NYA": "#003087",
-    "OAK": "#003831",
-    "PHI": "#E81828",
-    "PIT": "#FDB827",
-    "SDN": "#2F241D",
-    "SEA": "#0C2C56",
-    "SFN": "#FD5A1E",
-    "SLN": "#C41E3A",
-    "TBA": "#092C5C",
-    "TEX": "#003278",
-    "TOR": "#134A8E",
-    "WAS": "#AB0003",
+    "ARI": "#A71930", "ATL": "#13274F", "BAL": "#DF4601",
+    "BOS": "#BD3039", "CHN": "#0E3386", "CHA": "#27251F",
+    "CIN": "#C6011F", "CLE": "#00385D", "COL": "#33006F",
+    "DET": "#0C2340", "HOU": "#002D62", "KCA": "#004687",
+    "ANA": "#BA0021", "LAN": "#005A9C", "MIA": "#00A3E0",
+    "MIL": "#12284B", "MIN": "#002B5C", "NYN": "#002D72",
+    "NYA": "#003087", "OAK": "#003831", "PHI": "#E81828",
+    "PIT": "#FDB827", "SDN": "#2F241D", "SEA": "#0C2C56",
+    "SFN": "#FD5A1E", "SLN": "#C41E3A", "TBA": "#092C5C",
+    "TEX": "#003278", "TOR": "#134A8E", "WAS": "#AB0003",
 }
 
 # ======================================================
-# GLOBAL CACHES
+# GLOBAL CACHES (STRONG CACHE)
 # ======================================================
 
 _players_cache = None
 _teams_cache = None
 
+_players_by_id = None
+_players_by_team = None
+_players_sorted_by_avg = None
+
 # ======================================================
-# DATA LOADING
+# HELPERS
 # ======================================================
 
 def _get_data_file_path(filename):
@@ -137,11 +100,15 @@ def safe_int(value):
     except Exception:
         return 0
 
+# ======================================================
+# DATA LOADER (RUNS ONCE)
+# ======================================================
 
 def load_mlb_data():
     global _players_cache, _teams_cache
+    global _players_by_id, _players_by_team, _players_sorted_by_avg
 
-    if _players_cache is not None and _teams_cache is not None:
+    if _players_cache is not None:
         return _players_cache, _teams_cache
 
     batting_df = pd.read_csv(_get_data_file_path("Batting.csv"))
@@ -151,10 +118,14 @@ def load_mlb_data():
     batting_df = batting_df[batting_df["AB"] >= 450]
     batting_df["batting_avg"] = batting_df["H"] / batting_df["AB"]
 
-    best = batting_df.sort_values(
-        ["playerID", "batting_avg", "AB"],
-        ascending=[True, False, False]
-    ).groupby("playerID").head(1)
+    best = (
+        batting_df.sort_values(
+            ["playerID", "batting_avg", "AB"],
+            ascending=[True, False, False]
+        )
+        .groupby("playerID")
+        .head(1)
+    )
 
     positions = (
         fielding_df.groupby("playerID")["POS"]
@@ -162,14 +133,13 @@ def load_mlb_data():
         .reset_index()
     )
 
-    merged = best.merge(
-        people_df[["playerID", "nameFirst", "nameLast"]],
-        on="playerID",
-        how="left"
-    ).merge(
-        positions,
-        on="playerID",
-        how="left"
+    merged = (
+        best.merge(
+            people_df[["playerID", "nameFirst", "nameLast"]],
+            on="playerID",
+            how="left"
+        )
+        .merge(positions, on="playerID", how="left")
     )
 
     players = []
@@ -190,63 +160,84 @@ def load_mlb_data():
     teams_in_data = set(batting_df["teamID"].unique())
     teams = sorted(t for t in MODERN_MLB_TEAMS if t in teams_in_data)
 
+    # =========================
+    # DERIVED CACHES
+    # =========================
+
+    players_by_id = {}
+    players_by_team = defaultdict(list)
+
+    for p in players:
+        players_by_id[p["id"]] = p
+        players_by_team[p["team"]].append(p)
+
+    for team in players_by_team:
+        players_by_team[team].sort(
+            key=lambda p: p["batting_average"],
+            reverse=True
+        )
+
+    players_sorted_by_avg = sorted(
+        players,
+        key=lambda p: p["batting_average"],
+        reverse=True
+    )
+
     _players_cache = players
     _teams_cache = teams
+    _players_by_id = players_by_id
+    _players_by_team = players_by_team
+    _players_sorted_by_avg = players_sorted_by_avg
 
     return players, teams
 
 # ======================================================
-# PLAYER FUNCTIONS
+# PLAYER SERVICES
 # ======================================================
 
 def get_all_players():
-    return load_mlb_data()[0]
-
-
-def get_players_by_team(team_id):
-    players, _ = load_mlb_data()
-    return sorted(
-        [p for p in players if p["team"] == team_id],
-        key=lambda p: p["batting_average"],
-        reverse=True
-    )[:50]
-
+    load_mlb_data()
+    return _players_cache
 
 def get_player_by_id(player_id):
-    for p in load_mlb_data()[0]:
-        if p["id"] == player_id:
-            return p
-    return None
+    load_mlb_data()
+    return _players_by_id.get(player_id)
 
+def get_players_by_team(team_id, limit=50):
+    load_mlb_data()
+    return _players_by_team.get(team_id, [])[:limit]
 
 def get_random_players_sample(count=50):
-    players = [p for p in load_mlb_data()[0] if p["batting_average"] >= 0.200]
-    return random.sample(players, min(count, len(players)))
+    load_mlb_data()
+    eligible = [p for p in _players_sorted_by_avg if p["batting_average"] >= 0.200]
+    return random.sample(eligible, min(count, len(eligible)))
+
+def search_players(query, limit=10):
+    q = query.lower()
+    load_mlb_data()
+    matches = [p for p in _players_sorted_by_avg if q in p["name"].lower()]
+    return matches[:limit]
 
 # ======================================================
-# TEAM FUNCTIONS
+# TEAM SERVICES
 # ======================================================
 
 def get_all_teams():
-    return load_mlb_data()[1]
-
+    load_mlb_data()
+    return _teams_cache
 
 def get_random_team():
     teams = get_all_teams()
     return random.choice(teams) if teams else None
 
-
 def get_team_display_name(team_id):
     return TEAM_NAME_MAPPING.get(team_id, team_id)
-
 
 def get_team_display_abbrev(team_id):
     return TEAM_DISPLAY_ABBREV.get(team_id, team_id)
 
-
 def get_team_color(team_id):
     return TEAM_COLORS.get(team_id, "#000000")
-
 
 def get_team_stats(team_id):
     players = get_players_by_team(team_id)
@@ -264,12 +255,3 @@ def get_team_stats(team_id):
         "total_home_runs": sum(p["home_runs"] for p in players),
         "total_rbis": sum(p["rbi"] for p in players)
     }
-
-# ======================================================
-# SEARCH
-# ======================================================
-
-def search_players(query, limit=10):
-    q = query.lower()
-    matches = [p for p in load_mlb_data()[0] if q in p["name"].lower()]
-    return sorted(matches, key=lambda p: p["batting_average"], reverse=True)[:limit]
