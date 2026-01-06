@@ -28,10 +28,8 @@ export default function Leaderboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
-      {/* ✅ FULL-WIDTH HEADER */}
       <HeaderBar />
 
-      {/* ✅ CENTERED PAGE CONTENT */}
       <div className="flex justify-center p-8">
         <div className="w-full max-w-xl bg-black/40 backdrop-blur-xl rounded-2xl shadow-2xl p-8">
           <h1 className="text-white text-3xl font-bold mb-6">
