@@ -1,26 +1,40 @@
-const BoxGrid = ({ index, player, teamColor, onClick }) => {
-  const positions = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF", "DH/P"];
-
+// components/BoxGrid.jsx
+const BoxGrid = ({
+  index,
+  player,
+  teamColor,
+  label,
+  isBest,
+  disabled,
+  onClick,
+}) => {
   return (
-    <div
+    <button
       onClick={onClick}
-      className={`w-64 h-24 rounded-xl flex flex-col justify-center items-center transition
-        ${player ? "bg-opacity-90" : "bg-gray-800 border border-gray-600"}`}
-      style={player ? { backgroundColor: teamColor } : {}}
+      disabled={disabled}
+      style={{
+        backgroundColor: player ? teamColor : "#374151",
+      }}
+      className={`relative w-36 h-24 !rounded-xl text-white border border-white
+        flex flex-col items-center justify-center transition
+        ${player ? "opacity-90 cursor-not-allowed" : "hover:scale-105"}
+      `}
     >
-      {player ? (
-        <>
-          <p className="font-bold">{player.name}</p>
-          <p className="text-sm">{player.team}</p>
-          <p className="text-sm">BA: {player.batting_average.toFixed(3)}</p>
-        </>
-      ) : (
-        <p className="text-gray-400">Empty Slot</p>
-      )}
+      <span className="font-semibold">{label}</span>
 
-      <span className="absolute bottom-1 right-2 text-xs">
-        {positions[index]}
+      <span className="flex items-center gap-1">
+        {player && isBest && <span className="text-yellow-400">⭐</span>}
+        <span>{player ? player.name : "Empty Slot"}</span>
+        {player && isBest && <span className="text-yellow-400">⭐</span>}
       </span>
-    </div>
+
+      {player && (
+        <span className="text-yellow-400 text-sm">
+          {player.batting_average.toFixed(3)}
+        </span>
+      )}
+    </button>
   );
 };
+
+export default BoxGrid;

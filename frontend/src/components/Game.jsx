@@ -4,6 +4,7 @@ import { teamData } from "@/constants/teamData";
 import TeamDisplay from "@/components/TeamDisplay";
 import ShuffleButton from "@/components/ShuffleButton";
 import HeaderBar from "@/components/HeaderBar";
+import BoxGrid from "@/components/BoxGrid";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
@@ -162,8 +163,7 @@ export default function Game() {
 
         const data = await res.json();
         setHighScore(Number(data.high_score || 0));
-      } catch (err) {
-        console.error("Failed to save high score", err);
+      } catch {
         if (score > highScore) setHighScore(score);
       }
     } else if (score > highScore) {
@@ -184,7 +184,6 @@ export default function Game() {
 
   return (
     <>
-
       {error && <p className="text-red-500 text-lg mb-4">{error}</p>}
 
       {/* SHUFFLE */}
@@ -205,43 +204,33 @@ export default function Game() {
 
       {/* LINEUP GRID */}
       <div className="mt-10 flex flex-col items-center">
-        <h2 className="text-white text-2xl mb-6 font-semibold">Your Lineup</h2>
+        <h2 className="text-white text-xl !mb-10 font-semibold">
+          Your Lineup
+        </h2>
 
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 gap-6 mb-10">
           {lineup.map((player, i) => (
             <div key={i} className="relative">
-              <button
-                onClick={() =>
-                  !player && hasShuffled && !hasPickedPlayer && setActiveIndex(i)
-                }
-                style={{
-                  backgroundColor: player
+              <BoxGrid
+                index={i}
+                player={player}
+                teamColor={
+                  player
                     ? teamData[player.team]?.color
-                    : "#374151",
+                    : "#374151"
+                }
+                label={positionLabels[i]}
+                isBest={
+                  player &&
+                  isBestAtPosition(player, positionLabels[i])
+                }
+                disabled={Boolean(player)}
+                onClick={() => {
+                  if (!player && hasShuffled && !hasPickedPlayer) {
+                    setActiveIndex(i);
+                  }
                 }}
-                className={`w-36 h-24 rounded-xl text-white border border-white flex flex-col items-center justify-center transition
-                  ${player ? "opacity-90 cursor-not-allowed" : "hover:scale-105"}`}
-              >
-                <span className="font-semibold">{positionLabels[i]}</span>
-                <span className="flex items-center gap-1">
-                  {player &&
-                    isBestAtPosition(player, positionLabels[i]) && (
-                      <span className="text-yellow-400">⭐</span>
-                    )}
-
-                  <span>{player ? player.name : "Empty Slot"}</span>
-
-                  {player &&
-                    isBestAtPosition(player, positionLabels[i]) && (
-                      <span className="text-yellow-400">⭐</span>
-                    )}
-                </span>
-                {player && (
-                  <span className="text-yellow-400 text-sm">
-                    {player.batting_average.toFixed(3)}
-                  </span>
-                )}
-              </button>
+              />
 
               {activeIndex === i &&
                 hasShuffled &&
@@ -269,7 +258,7 @@ export default function Game() {
           ))}
         </div>
 
-        <p className="text-white text-xl mt-6">
+        <p className="text-white text-xl mt-8">
           Total Batting Average:{" "}
           <span className="font-bold text-yellow-400">
             {totalAverage()}
@@ -288,7 +277,8 @@ export default function Game() {
         {lineupFull && (
           <button
             onClick={resetGame}
-            className="mt-8 px-8 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition hover:scale-105"
+            className="mt-8 px-8 py-3 bg-blue-600 text-white rounded-2xl
+                       hover:bg-blue-700 transition hover:scale-105"
           >
             Play Again
           </button>
