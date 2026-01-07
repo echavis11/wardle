@@ -27,12 +27,12 @@ export default function Leaderboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
+    <div className="min-h-screen bg-black">
       <HeaderBar />
 
       <div className="flex justify-center p-8">
         <div className="w-full max-w-xl bg-black/40 backdrop-blur-xl rounded-2xl shadow-2xl p-8">
-          <h1 className="text-white text-3xl font-bold mb-6">
+          <h1 className="text-white text-3xl font-bold !mb-6 !text-center">
             Leaderboard
           </h1>
 
@@ -51,7 +51,7 @@ export default function Leaderboard() {
           )}
 
           {!loading && !error && leaders.length > 0 && (
-            <ul className="space-y-3">
+            <ul className="space-y-4">
               {leaders.map((user, index) => (
                 <LeaderboardRow
                   key={user.username}
@@ -69,15 +69,35 @@ export default function Leaderboard() {
 }
 
 function LeaderboardRow({ rank, username, score }) {
+  const podiumStyles = {
+    1: "bg-gradient-to-r from-yellow-400 to-yellow-600 text-black",
+    2: "bg-gradient-to-r from-gray-300 to-gray-400 text-black",
+    3: "bg-gradient-to-r from-amber-600 to-amber-700 text-black",
+  };
+
+  const baseStyle =
+    "flex justify-between items-center rounded-xl px-6 py-4 transition";
+
+  const style =
+    podiumStyles[rank] ?? "bg-white/10 text-white";
+
   return (
-    <li className="flex justify-between items-center bg-white/10 rounded-xl px-4 py-3">
-      <div className="flex items-center gap-3">
-        <span className="text-yellow-400 font-bold text-lg">#{rank}</span>
-        <span className="text-white font-semibold">{username}</span>
+    <li className={`${baseStyle} ${style}`}>
+      <div className="flex items-center gap-4">
+        <span className="font-bold text-lg">
+          #{rank}
+        </span>
+
+        <span className="font-semibold">
+          {username}
+        </span>
       </div>
-      <span className="text-green-400 font-mono">
+
+      <span className="font-mono font-bold">
         {score.toFixed(3)}
       </span>
     </li>
   );
 }
+
+
