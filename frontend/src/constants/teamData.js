@@ -4,7 +4,7 @@ export const teamData = {
   BAL: { name: "orioles", color: "#DF4601" },
   BOS: { name: "redsox", color: "#BD3039" },
   CHC: { name: "cubs", color: "#0E3386" },
-  CHW: { name: "whitesox", color: "#27251F" },
+  CWS: { name: "whitesox", color: "#27251F" },
   CIN: { name: "reds", color: "#C6011F" },
   CLE: { name: "guardians", color: "#0C2340" },
   COL: { name: "rockies", color: "#333366" },
